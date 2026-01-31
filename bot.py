@@ -9,20 +9,18 @@ from telegram.ext import (
 )
 from openai import OpenAI
 
-# =========================
-# 🔐 ТОКЕНИ
-# =========================
+# ======================
+# 🔐 TOKENS FROM ENV
+# ======================
 
-BOT_TOKEN = "8513214069:AAEfG7ChMIq1whSNa0iZSqui0nbh2JaJF2Q"
-
-# =====================
-# 🤖 OPENAI CLIENT
-# =====================
-
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN is not set in environment variables")
+
 if not OPENAI_API_KEY:
-    raise RuntimeError("❌ OPENAI_API_KEY не заданий у змінних середовища")
+    raise RuntimeError("OPENAI_API_KEY is not set in environment variables")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -119,3 +117,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
