@@ -59,24 +59,33 @@ Rules:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = "EXPERT"
     await update.message.reply_text(
-        "🧠 I am Lafet активний.\n\n"
+        "🧠 *I am Lafet активний.*\n\n"
         "Режими:\n"
         "/mode expert\n"
         "/mode creator\n"
         "/mode host\n\n"
-        "Просто пиши повідомлення."
+        "Просто пиши повідомлення — без команд.",
+        parse_mode="Markdown"
     )
 
+
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        context.user_data["mode"] = context.args[0].upper()
+    if not context.args:
         await update.message.reply_text(
-            f"🔁 Режим змінено: {context.user_data['mode']}"
+            "⚠️ Вкажи режим:\n/mode expert | creator | host"
         )
-    else:
+        return
+
+    mode = context.args[0].upper()
+    if mode not in {"EXPERT", "CREATOR", "HOST"}:
         await update.message.reply_text(
-            "⚠️ Вкажи режим: /mode expert | creator | host"
+            "❌ Невірний режим.\nДоступно: expert | creator | host"
         )
+        return
+
+    context.user_data["mode"] = mode
+    await update.message.reply_text(f"🔁 Режим змінено: *{mode}*", parse_mode="Markdown")
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
@@ -97,6 +106,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(reply)
 
+
 # =========================
 # 🚀 MAIN
 # =========================
@@ -106,12 +116,11 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("mode", mode))
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🧠 I am Lafet with AI ЗАПУЩЕНО")
     app.run_polling(close_loop=False)
+
 
 if __name__ == "__main__":
     main()
