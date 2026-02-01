@@ -52,64 +52,50 @@ Rules:
 • Speak like a human, not a bot
 """
 
-# режим зберігаємо окремо для кожного чату
-USER_STATE = {}
-
 # =========================
 # 🤖 HANDLERS
 # =========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    USER_STATE[update.effective_chat.id] = "EXPERT"
+    context.user_data["mode"] = "EXPERT"
     await update.message.reply_text(
         "🧠 I am Lafet активний.\n\n"
         "Режими:\n"
         "/mode expert\n"
         "/mode creator\n"
         "/mode host\n\n"
-        "Просто пиши запит без команд."
+        "Просто пиши повідомлення."
     )
-
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
+    if context.args:
+        context.user_data["mode"] = context.args[0].upper()
         await update.message.reply_text(
-            "⚠️ Вкажи режим:\n/mode expert | creator | host"
+            f"🔁 Режим змінено: {context.user_data['mode']}"
         )
-        return
-
-    USER_STATE[update.effective_chat.id] = context.args[0].upper()
-    await update.message.reply_text(
-        f"🔁 Режим змінено: {USER_STATE[update.effective_chat.id]}"
-    )
-
+    else:
+        await update.message.reply_text(
+            "⚠️ Вкажи режим: /mode expert | creator | host"
+        )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
-    mode = USER_STATE.get(update.effective_chat.id, "EXPERT")
+    mode = context.user_data.get("mode", "EXPERT")
 
     try:
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model="gpt-4.1-mini",
-            input=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": f"[MODE: {mode}]\n{user_text}",
-                },
-            ],
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f"[MODE: {mode}]\n{user_text}"}
+            ]
         )
-
-        reply = response.output_text
+        reply = response.choices[0].message.content
 
     except Exception as e:
         reply = f"⚠️ Помилка AI:\n{e}"
 
     await update.message.reply_text(reply)
-
 
 # =========================
 # 🚀 MAIN
@@ -120,11 +106,12 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("mode", mode))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+    )
 
     print("🧠 I am Lafet with AI ЗАПУЩЕНО")
-    app.run_polling()
-
+    app.run_polling(close_loop=False)
 
 if __name__ == "__main__":
     main()
