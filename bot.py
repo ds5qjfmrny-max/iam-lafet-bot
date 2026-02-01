@@ -24,7 +24,6 @@ if not OPENAI_API_KEY:
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-
 # =========================
 # 🧠 SYSTEM PROMPT
 # =========================
@@ -53,15 +52,15 @@ Rules:
 • Speak like a human, not a bot
 """
 
-STATE = {
-    "mode": "EXPERT",
-}
+# режим зберігаємо окремо для кожного чату
+USER_STATE = {}
 
 # =========================
 # 🤖 HANDLERS
 # =========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    USER_STATE[update.effective_chat.id] = "EXPERT"
     await update.message.reply_text(
         "🧠 I am Lafet активний.\n\n"
         "Режими:\n"
@@ -73,26 +72,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        STATE["mode"] = context.args[0].upper()
-        await update.message.reply_text(f"🔁 Режим змінено: {STATE['mode']}")
-    else:
-        await update.message.reply_text("⚠️ Вкажи режим: /mode expert | creator | host")
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ Вкажи режим:\n/mode expert | creator | host"
+        )
+        return
+
+    USER_STATE[update.effective_chat.id] = context.args[0].upper()
+    await update.message.reply_text(
+        f"🔁 Режим змінено: {USER_STATE[update.effective_chat.id]}"
+    )
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
+    mode = USER_STATE.get(update.effective_chat.id, "EXPERT")
 
     try:
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"[MODE: {STATE['mode']}]\n{user_text}"}
-            ]
+            input=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": f"[MODE: {mode}]\n{user_text}",
+                },
+            ],
         )
 
-        reply = response.choices[0].message.content
+        reply = response.output_text
 
     except Exception as e:
         reply = f"⚠️ Помилка AI:\n{e}"
@@ -117,4 +128,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
