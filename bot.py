@@ -88,10 +88,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"[MODE: {mode}]\n{user_text}"}
-            ]
+                {"role": "user", "content": f"[MODE: {mode}]\n{user_text}"},
+            ],
         )
-
         reply = response.choices[0].message.content
 
     except Exception as e:
