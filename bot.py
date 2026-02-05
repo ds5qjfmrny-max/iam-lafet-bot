@@ -10,23 +10,23 @@ from telegram.ext import (
 from openai import OpenAI
 
 # ======================
-# 🔐 TOKENS FROM ENV
+# 🔐 ENV
 # ======================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN is not set in environment variables")
+    raise RuntimeError("BOT_TOKEN is not set")
 
 if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY is not set in environment variables")
+    raise RuntimeError("OPENAI_API_KEY is not set")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# =========================
+# ======================
 # 🧠 SYSTEM PROMPT
-# =========================
+# ======================
 
 SYSTEM_PROMPT = """
 You are I am Lafet — a digital clone of Andriy Muzichenko.
@@ -52,22 +52,20 @@ Rules:
 • Speak like a human, not a bot
 """
 
-# =========================
+# ======================
 # 🤖 HANDLERS
-# =========================
+# ======================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["mode"] = "EXPERT"
     await update.message.reply_text(
-        "🧠 *I am Lafet активний.*\n\n"
+        "🧠 I am Lafet активний.\n\n"
         "Режими:\n"
         "/mode expert\n"
         "/mode creator\n"
         "/mode host\n\n"
-        "Просто пиши повідомлення — без команд.",
-        parse_mode="Markdown"
+        "Просто пиши повідомлення."
     )
-
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -76,16 +74,10 @@ async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    mode = context.args[0].upper()
-    if mode not in {"EXPERT", "CREATOR", "HOST"}:
-        await update.message.reply_text(
-            "❌ Невірний режим.\nДоступно: expert | creator | host"
-        )
-        return
-
-    context.user_data["mode"] = mode
-    await update.message.reply_text(f"🔁 Режим змінено: *{mode}*", parse_mode="Markdown")
-
+    context.user_data["mode"] = context.args[0].upper()
+    await update.message.reply_text(
+        f"🔁 Режим змінено: {context.user_data['mode']}"
+    )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
@@ -99,6 +91,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "user", "content": f"[MODE: {mode}]\n{user_text}"}
             ]
         )
+
         reply = response.choices[0].message.content
 
     except Exception as e:
@@ -106,10 +99,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(reply)
 
-
-# =========================
+# ======================
 # 🚀 MAIN
-# =========================
+# ======================
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -118,9 +110,8 @@ def main():
     app.add_handler(CommandHandler("mode", mode))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("🧠 I am Lafet with AI ЗАПУЩЕНО")
-    app.run_polling(close_loop=False)
-
+    print("🧠 I am Lafet ЗАПУЩЕНО")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
